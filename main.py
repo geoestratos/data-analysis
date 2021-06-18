@@ -4,54 +4,12 @@ import numpy as np
 import argparse
 import requests
 import json
+from libs.utils import sample_average, find_index, param_array_by
+from data.config import config
 
 def remove(dataset, label, value):
     indexNames = dataset[ dataset[label] == value ].index
     plan.drop(indexNames, inplace=True)
-
-def sample_average(array, samples):
-    mean = []
-    for i, value in enumerate(array):
-        if i<samples:
-            mean.append(round(np.mean(array[i:i+samples]), 2))      
-        elif i>=samples:
-            mean.append(round(np.mean(array[i-samples:i+samples]), 2))  
-    return mean
-
-def find_index(dataset, value, type, step):
-    for i, v in enumerate(dataset):
-        if type == "end":
-            if (v <= value and v > value-step):
-                return i
-            elif i == len(dataset)-1:
-                return i
-            # elif v <= value and v > value*0.8:
-            #     print("Data missing")
-        elif type == "start":
-            if i < len(dataset)-1:
-                if v >= value:
-                    return i
-            else: return i
-
-def param_array_by(array, array_ref, param_array, method=None):
-    result_array = []
-    # depth = []    
-    if method is None:
-        for i, value in enumerate(param_array):
-            index_low =  find_index(array, value, "start", step=1)
-            if i != len(param_array)-1:
-                index_high = find_index(array, param_array[i+1], "end", step=1)
-            else:   
-                index_high = find_index(array, value, "end", step=1)
-
-            if index_high != None and index_low != None:
-                consult = array_ref[index_low: index_high]
-                # depth.append(array[index_low: index_high])
-                if len(consult)>0:
-                    result_array.append(np.mean(consult))
-                
-    # print(depth)
-    return result_array
 
 parser = argparse.ArgumentParser()
 
@@ -71,6 +29,9 @@ if args.variable == "resistive":
     response = requests.get("http://167.71.240.14/api/drilling/?well=3&name=LWD.%20Res%20Profunda")
 elif args.variable == "gamma":
     response = requests.get("http://167.71.240.14/api/drilling/?well=3&name=LWD.%20Rayos%20Gamma")
+elif args.variable == "time":
+    response = requests.get("http://167.71.240.14/api/drilling/?well=3&name=TIME")
+
 
 if response.status_code == 200:
     res =  json.loads(response.content)
@@ -94,22 +55,6 @@ end_depth = float(args.end)
 colors = args.colors.split(',')
 interval_m = 1
 
-config = [
-    {
-        'name': 'Pleistoceno',
-        'depth': 85,
-        'ok': 1,
-        'warning': 3,
-        'danger': 5,
-    },
-    {
-        'name': 'Cretasico sup',
-        'depth': 5759,
-        'ok': 10,
-        'warning': 15,
-        'danger': 20,
-    },
-]
 
 #Calculate interval data
 start_depth_index = 0
@@ -156,8 +101,8 @@ param_plan = param_array_by(depth_plan, plan, param_depth_plan)
 
 
 #Calculate plan ages
-age1_index = find_index( param_depth_plan, config[0]['depth'], "start", step=1)
-age2_index = find_index(param_depth_plan, config[1]['depth'], "start", step=1)
+age1_index = find_index( param_depth_plan, config.resistive[0]['depth'], "start", step=1)
+age2_index = find_index(param_depth_plan, config.resistive[1]['depth'], "start", step=1)
 
 danger_line = []
 warning_line = []
@@ -170,23 +115,23 @@ else:
 
 
 #Create limits
-danger_line = np.append(danger_line, (age1 + config[0]['danger']))
-warning_line = np.append(warning_line, (age1 + config[0]['warning']))
-ok_line = np.append(ok_line, (age1 + config[0]['ok']))
+danger_line = np.append(danger_line, (age1 + config.resistive[0]['danger']))
+warning_line = np.append(warning_line, (age1 + config.resistive[0]['warning']))
+ok_line = np.append(ok_line, (age1 + config.resistive[0]['ok']))
 
-if  param_depth_plan[age2_index] >= config[1]['depth']:
+if  param_depth_plan[age2_index] >= config.resistive[1]['depth']:
     age2 = np.array(param_plan)
     age2 = np.array(age2[age2_index:])
-    danger_line = np.append(danger_line, (age2 + config[1]['danger']))
-    warning_line = np.append(warning_line, (age2 + config[1]['warning']),)
-    ok_line = np.append(ok_line, (age2 + config[1]['ok']))
+    danger_line = np.append(danger_line, (age2 + config.resistive[1]['danger']))
+    warning_line = np.append(warning_line, (age2 + config.resistive[1]['warning']),)
+    ok_line = np.append(ok_line, (age2 + config.resistive[1]['ok']))
 
 
 fig, (plt1) = plt.subplots(1, 1)
-plt1.plot(param_plan, param_depth_plan[:-1], colors[0], label="Plan")
-plt1.plot(danger_line, param_depth_plan[:-1], color=colors[3], label="Danger line")
-plt1.plot(warning_line, param_depth_plan[:-1], color=colors[2], label="Warning line")
-plt1.plot(ok_line, param_depth_plan[:-1], color=colors[1], label="Good line")
+plt1.plot(param_plan, param_depth_plan[:-3], colors[0], label="Plan")
+plt1.plot(danger_line, param_depth_plan[:-3], color=colors[3], label="Danger line")
+plt1.plot(warning_line, param_depth_plan[:-3], color=colors[2], label="Warning line")
+plt1.plot(ok_line, param_depth_plan[:-3], color=colors[1], label="Good line")
 plt1.plot(real, depth_real, label= "Real")
 
 plt1.set_title(args.variable.capitalize())
