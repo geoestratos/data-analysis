@@ -25,12 +25,18 @@ real = []
 depth_real = []
 
 ##Get real data
-if args.variable == "resistive":
-    response = requests.get("http://167.71.240.14/api/drilling/?well=3&name=LWD.%20Res%20Profunda")
-elif args.variable == "gamma":
-    response = requests.get("http://167.71.240.14/api/drilling/?well=3&name=LWD.%20Rayos%20Gamma")
-elif args.variable == "time":
-    response = requests.get("http://167.71.240.14/api/drilling/?well=3&name=TIME")
+print("Connecting to server")
+try:
+    if args.variable == "resistive":
+        response = requests.get("http://167.71.240.14/api/drilling/?well=3&name=LWD.%20Res%20Profunda")
+    elif args.variable == "gamma":
+        response = requests.get("http://167.71.240.14/api/drilling/?well=3&name=LWD.%20Rayos%20Gamma")
+    elif args.variable == "time":
+        response = requests.get("http://167.71.240.14/api/drilling/?well=3&name=TIME")
+    print("Data received")
+except:
+    print("Failed to get data")
+    
 
 
 if response.status_code == 200:
@@ -128,10 +134,10 @@ if  param_depth_plan[age2_index] >= config.resistive[1]['depth']:
 
 
 fig, (plt1) = plt.subplots(1, 1)
-plt1.plot(param_plan, param_depth_plan[:-3], colors[0], label="Plan")
-plt1.plot(danger_line, param_depth_plan[:-3], color=colors[3], label="Danger line")
-plt1.plot(warning_line, param_depth_plan[:-3], color=colors[2], label="Warning line")
-plt1.plot(ok_line, param_depth_plan[:-3], color=colors[1], label="Good line")
+plt1.plot(param_plan, param_depth_plan[:-2], colors[0], label="Plan")
+plt1.plot(danger_line, param_depth_plan[:-2], color=colors[2], label="Danger line")
+plt1.plot(warning_line, param_depth_plan[:-2], color=colors[3], label="Warning line")
+plt1.plot(ok_line, param_depth_plan[:-2], color=colors[1], label="Good line")
 plt1.plot(real, depth_real, label= "Real")
 
 plt1.set_title(args.variable.capitalize())

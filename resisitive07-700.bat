@@ -1,1 +1,0 @@
-python .\main.py --variable resistive --start 0 --end 700 --colors gray,yellow,orange,red
